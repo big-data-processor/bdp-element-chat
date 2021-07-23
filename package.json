@@ -1,23 +1,44 @@
 {
-  "name": "bdp-app-chat",
-  "version": "0.0.0",
+  "name": "@big-data-processor/bdp-element-chat",
+  "version": "0.0.3",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "pkg": "concat-glob-cli -f dist/**/*.js -o dist/bdp-element-chat.js"
   },
-  "private": true,
+  "big-data-processor": {
+    "name": "BDP chatroom",
+    "type": "element",
+    "author": "Chi Yang",
+    "email": "chiyang1118@gmail.com",
+    "description": "This bdp element enables BDP users to chat in shared Projects or Packages.",
+    "element": "dist/bdp-element-chat.js",
+    "icon": "dist/bdp-element-chat/assets/bdp-element-chat.svg",
+    "tagName": "bdp-element-chat",
+    "isModule": true,
+    "scopes": [
+      "project.read",
+      "package.read",
+      "mongo.bdp-elem-chat",
+      "state",
+      "sync",
+      "broadcast"
+    ]
+  },
   "dependencies": {
     "@angular/animations": "~12.1.1",
     "@angular/common": "~12.1.1",
     "@angular/compiler": "~12.1.1",
     "@angular/core": "~12.1.1",
+    "@angular/elements": "^12.1.1",
     "@angular/forms": "~12.1.1",
     "@angular/platform-browser": "~12.1.1",
     "@angular/platform-browser-dynamic": "~12.1.1",
     "@angular/router": "~12.1.1",
+    "@ckeditor/ckeditor5-angular": "^2.0.2",
     "rxjs": "~6.6.0",
     "tslib": "^2.2.0",
     "zone.js": "~0.11.4"
@@ -28,7 +49,8 @@
     "@angular/compiler-cli": "~12.1.1",
     "@types/jasmine": "~3.6.0",
     "@types/node": "^12.11.1",
-    "jasmine-core": "~3.7.0",
+    "concat-glob-cli": "^0.1.0",
+    "jasmine-core": "~3.8.0",
     "karma": "~6.3.0",
     "karma-chrome-launcher": "~3.1.0",
     "karma-coverage": "~2.0.3",

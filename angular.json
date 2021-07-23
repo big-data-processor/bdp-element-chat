@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "bdp-app-chat": {
+    "bdp-element-chat": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:application": {
@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/bdp-app-chat",
+            "outputPath": "dist/bdp-element-chat",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
@@ -68,10 +68,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "bdp-app-chat:build:production"
+              "browserTarget": "bdp-element-chat:build:production"
             },
             "development": {
-              "browserTarget": "bdp-app-chat:build:development"
+              "browserTarget": "bdp-element-chat:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -79,7 +79,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "bdp-app-chat:build"
+            "browserTarget": "bdp-element-chat:build"
           }
         },
         "test": {
@@ -102,5 +102,5 @@
       }
     }
   },
-  "defaultProject": "bdp-app-chat"
+  "defaultProject": "bdp-element-chat"
 }
