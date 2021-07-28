@@ -1,18 +1,29 @@
 <!-- <div role="alert"> -->
+<ng-container *ngIf="messageObj">
   <div class="toast-header">
-  <span class="me-auto"><strong>Bootstrap</strong> says </span>
-  <small>11 mins ago</small>
+  <span class="me-auto">
+    <strong *ngIf="messageObj?.owner?.name">{{ currentUser && messageObj?.owner?.id === currentUser?.id ? 'You' : messageObj?.owner?.name }}</strong> ({{ getUserRole(messageObj) }})
+    <strong *ngIf="!messageObj?.owner?.name">(unknown user)</strong>
+    <span class='ms-1'>said</span>
+  </span>
+  <small *ngIf="messageObj?.createdAt">{{ messageObj?.createdAt?.fromNow() }}</small>
   </div>
-  <div class="toast-body">
-  Hello, world! This is a toast message.
+  <div class="toast-body p-0" [style.background-color]="mode === 'edit' ? 'rgb(237, 246, 255)' : 'transparent'">
+    <ckeditor [editor]="Editor" [(ngModel)]="messageObj.content" [disabled]="mode === 'view'"></ckeditor>
   </div>
-<!-- </div> -->
-<!-- <div class="toast showing align-self-end bg-light" role="alert" aria-live="assertive" aria-atomic="true" style='width: 80%; min-width: 250px;'>
-  <div class="toast-header">
-  <span class="me-auto"><strong>Bootstrap</strong> says </span>
-  <small>11 mins ago</small>
+  <div class="toast-header p-1 justify-content-end" style='font-size: 8px;'>
+    <div *ngIf="messageObj?.createdAt && messageObj?.updatedAt && !messageObj.createdAt?.isSame(messageObj.updatedAt)" class="flex-grow-1 text-start pl-1">edited {{ messageObj?.updatedAt?.fromNow() }}</div>
+    <ng-container *ngIf="currentUser && messageObj?.owner?.id === currentUser?.id">
+      <button class='btn btn-light' (click)="toggleEditor()">
+        <i *ngIf="mode === 'view'" class="fas fa-pencil-alt fa-sm text-secondary"></i>
+        <i *ngIf="mode === 'edit'" class="fas fa-times fa-sm text-danger"></i>
+      </button>
+      <button *ngIf="mode === 'edit'" class='btn btn-light' (click)="updateMessage()">
+        <i class='fas fa-save fa-sm text-primary'></i>
+      </button>
+      <button class='btn btn-light' (click)="removeMessage()" [disabled]="isDeleting">
+        <i class="fas fa-trash-alt fa-sm text-secondary"></i>
+      </button>
+    </ng-container>
   </div>
-  <div class="toast-body">
-  Hello, world! This is a toast message.
-  </div>
-</div> -->
+</ng-container>

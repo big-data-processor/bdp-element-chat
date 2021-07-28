@@ -1,12 +1,25 @@
 <div class='p-2'>
+  <div *ngIf="chatRoomIds.length === 0" class="alert alert-primary" role="alert">
+    Select a Project or Package to join the corresponding chatroom.
+  </div>
   <div class="accordion">
     <!-- <bdp-chatroom [roomId]="'abcd'" [roomType]="'project'" [roomMessages]="chatRooms.get(roomId)"></bdp-chatroom> -->
-    <ng-container *ngFor="let eachRoomId of chatRoomIds">
+    <ng-container *ngFor="let eachRoomId of chatRoomIds; trackBy: trackByRoomIds">
       <ng-container *ngIf="chatRooms[eachRoomId]">
         <bdp-chatroom 
           [roomId]="eachRoomId"
-          [roomType]="chatRooms[eachRoomId].type"
-          [messages]="chatRooms[eachRoomId].messages"
+          [roomModel]="roomModelMap.get(eachRoomId)"
+          [chatroom]="chatRooms[eachRoomId]"
+          [currentUser]="currentUser"
+          [scrollToBottomFlag]="chatRooms[eachRoomId].triggerScrollToBottom"
+          [userModelMap]="userModelMap"
+          [panelState]="panelState"
+          (onSendMessage)="sendMessage($event)"
+          (onMessageUpdate)="editMessage($event)"
+          (onMessageRemove)="removeMessage($event)"
+          (onScrollToBottom)="setScrollAtBottom($event, eachRoomId)"
+          (onRequestMoreMessage)="loadMoreMessages($event)"
+          (click)="focusChatRoom(eachRoomId)"
         ></bdp-chatroom>
       </ng-container>
     </ng-container>

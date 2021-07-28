@@ -8,6 +8,10 @@ if (environment.production) {
   enableProdMode();
 }
 
-// platformBrowserDynamic().bootstrapModule(AppModule, { ngZone: (window as any).ngZone })
-//   .catch(err => console.error(err));
-platformBrowserDynamic().bootstrapModule(AppModule).catch(err => console.error(err));
+platformBrowserDynamic().bootstrapModule(AppModule, { ngZone: (window as any).ngZone })
+  .catch(err => {
+    console.log('bdp-element-chat zone error');
+    console.error(err);
+    
+  });
+// platformBrowserDynamic().bootstrapModule(AppModule).catch(err => console.error(err));

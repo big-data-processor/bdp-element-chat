@@ -2,30 +2,51 @@
 <!-- Each group chatrooms -->
 <div class="accordion-item mb-2">
   <!-- Each group chatrooms -->
-  <h2 class="accordion-header" [id]="roomType + '-' + roomId + '-header'">
-  <button class="accordion-button" type="button" data-bs-toggle="collapse" [attr.data-bs-target]="'#' + roomType + '-' + roomId + '-body'" aria-expanded="true" [attr.aria-controls]="roomType + '-' + roomId + '-body'">
-    Accordion Item #1
+  <h2 class="accordion-header" [id]="chatroom.type + '-' + roomId + '-header'">
+  <button class="accordion-button" type="button" data-bs-toggle="collapse" [attr.data-bs-target]="'#' + chatroom.type + '-' + roomId + '-body'" aria-expanded="true" [attr.aria-controls]="chatroom.type + '-' + roomId + '-body'">
+    <i class="fas fa-fw me-2" [class.fa-briefcase]="chatroom.type === 'project'" [class.fa-cube]="chatroom.type === 'package'"></i><span>{{ roomModel?.name }}
+      <span *ngIf="chatroom.unread > 0" class="badge bg-secondary">{{ chatroom.unread }}</span>
+    </span>
   </button>
   </h2>
-  <div [id]="roomType + '-' + roomId + '-body'" class="accordion-collapse collapse show" [attr.aria-labelledby]="roomType + '-' + roomId + '-header'">
+  <div [id]="chatroom.type + '-' + roomId + '-body'" class="accordion-collapse collapse show" [attr.aria-labelledby]="chatroom.type + '-' + roomId + '-header'">
     <div class="accordion-body p-2">
-      <div #messageBoxes style='max-height: 650px; overflow: auto;'>
+      <div #messageBoxes style='overflow: auto; text-align: center;' [style.max-height]="panelState === 'full' ? '2160px' : (panelState === 'large' ? '1080px' : '850px')" (scroll)=onScroll()>
+        <ng-container *ngIf="chatroom.pageIndex > 0 && !chatroom.isLoading">
+          <button class="btn btn-outline-primary btn-sm" (click)="loadMoreMessages()"> Load more ...</button>
+        </ng-container>
+        <ng-container *ngIf="chatroom.pageIndex == 0 && !chatroom.isLoading">
+          <button class="btn btn-outline-secondary btn-sm" disabled>No older messages</button>
+        </ng-container>
         <div class="toast-container py-2 d-flex flex-column" style='width: 100%;'>
-          <bdp-chatbox class='toast my-1 showing align-self-end ' aria-live="assertive" aria-atomic="true" style='background-color: rgb(231, 241, 255);'></bdp-chatbox>
-          <bdp-chatbox class='toast my-1 showing' aria-live="assertive" aria-atomic="true" style='background-color: rgb(230, 230, 230);'></bdp-chatbox>
-          <bdp-chatbox class='toast my-1 showing' aria-live="assertive" aria-atomic="true" style='background-color: rgb(230, 230, 230);'></bdp-chatbox>
-          <bdp-chatbox class='toast my-1 showing align-self-end' style='background-color: rgb(220, 240, 225);' aria-live="assertive" aria-atomic="true"></bdp-chatbox>
-          <bdp-chatbox class='toast my-1 showing align-self-end' style='background-color: rgb(220, 240, 225);' aria-live="assertive" aria-atomic="true"></bdp-chatbox>
-          <bdp-chatbox class='toast my-1 showing align-self-end' style='background-color: rgb(220, 240, 225);' aria-live="assertive" aria-atomic="true"></bdp-chatbox>
-          <bdp-chatbox class='toast my-1 showing align-self-end' style='background-color: rgb(220, 240, 225);' aria-live="assertive" aria-atomic="true"></bdp-chatbox>
-          <bdp-chatbox class='toast my-1 showing align-self-end' style='background-color: rgb(220, 240, 225);' aria-live="assertive" aria-atomic="true"></bdp-chatbox>
-          <bdp-chatbox class='toast my-1 showing align-self-end' style='background-color: rgb(220, 240, 225);' aria-live="assertive" aria-atomic="true"></bdp-chatbox>
+          <div *ngIf="chatroom.isLoading" class='align-self-center'>
+            <i class='fas fa-sync-alt fa-spin fa-lg'></i>
+          </div>
+          <ng-container *ngFor="let message of chatroom.messages; trackBy: trackByMsgIds">
+            <bdp-chatbox 
+              [@chatBox]="'show'"
+              class='toast my-1 showing'
+              style='min-width: 229px'
+              [class.align-self-end]="message.owner?.id === currentUser?.id"
+              [style.width]="panelState === 'full' ? '80%' : (panelState === 'large' ? '90%' : '100%')"
+              [style.background-color]="message.owner?.id === currentUser?.id ? 'rgb(220, 240, 225)' : 'rgb(230, 230, 230)'"
+              [style.opacity]="message.id && deletingMsgIds.has(message.id) ? '0.5' : '1'"
+              [userModelMap]="userModelMap"
+              [messageObj] = "message"
+              [roomModel]="roomModel"
+              [currentUser]="currentUser"
+              (onUpdateMsg)="updateMessage($event)"
+              (onRemoveMsg)="removeMessage($event)"
+            ></bdp-chatbox>
+          </ng-container>
         </div>
       </div>
       <hr>
-      <div class="input-group mt-2">
-        <input type="text" class="form-control" placeholder="Text here.">
-        <button class="btn btn-outline-primary" type="button"><i class='far fa-paper-plane'></i></button>
+      <div class="input-group mt-2 p-0">
+        <!-- <input type="text" class="form-control" [(ngModel)]="inputText" placeholder="Text here."> -->
+        <!-- <ckeditor class='form-control' [editor]="Editor" [(ngModel)]="inputText"></ckeditor> -->
+        <ckeditor class='form-control p-0' [editor]="Editor" [(ngModel)]="inputText"></ckeditor>
+        <button class="btn btn-outline-primary" type="button" (click)="sendMessage()"><i class='far fa-paper-plane'></i></button>
       </div>
     </div>
   </div>
