@@ -2,7 +2,8 @@
 <ng-container *ngIf="messageObj">
   <div class="toast-header">
   <span class="me-auto">
-    <strong *ngIf="messageObj?.owner?.name">{{ currentUser && messageObj?.owner?.id === currentUser?.id ? 'You' : messageObj?.owner?.name }}</strong> ({{ getUserRole(messageObj) }})
+    <strong *ngIf="messageObj?.owner?.name">{{ currentUser && messageObj?.owner?.id === currentUser?.id ? 'You' : messageObj?.owner?.name }}</strong> 
+    <span *ngIf="roomModel && roomModel.hasOwnProperty('managers')">({{ getUserRole(messageObj) }})</span>
     <strong *ngIf="!messageObj?.owner?.name">(unknown user)</strong>
     <span class='ms-1'>said</span>
   </span>
@@ -13,16 +14,27 @@
   </div>
   <div class="toast-header p-1 justify-content-end" style='font-size: 8px;'>
     <div *ngIf="messageObj?.createdAt && messageObj?.updatedAt && !messageObj.createdAt?.isSame(messageObj.updatedAt)" class="flex-grow-1 text-start pl-1">edited {{ messageObj?.updatedAt?.fromNow() }}</div>
+    <ng-container *ngIf="currentUser && messageObj?.owner && messageObj?.owner?.id && messageObj?.owner?.id !== currentUser.id">
+      <button *ngIf="messageObj?.owner?.id && messageObj.owner?.id !== roomModel?.id" class='btn btn-light' (click)="enterChatroom('user', messageObj?.owner?.id)">
+        <i class="far fa-comment-dots text-secondary"></i>
+      </button>
+    </ng-container>
     <ng-container *ngIf="currentUser && messageObj?.owner?.id === currentUser?.id">
-      <button class='btn btn-light' (click)="toggleEditor()">
+      <button class='btn btn-light' (click)="toggleEditor()" [disabled]="isDeleting">
         <i *ngIf="mode === 'view'" class="fas fa-pencil-alt fa-sm text-secondary"></i>
         <i *ngIf="mode === 'edit'" class="fas fa-times fa-sm text-danger"></i>
       </button>
-      <button *ngIf="mode === 'edit'" class='btn btn-light' (click)="updateMessage()">
-        <i class='fas fa-save fa-sm text-primary'></i>
+      <button *ngIf="mode === 'edit'" class='btn btn-outline-primary' (click)="updateMessage()" [disabled]="isDeleting">
+        <i class='fas fa-save fa-lg'></i>
       </button>
-      <button class='btn btn-light' (click)="removeMessage()" [disabled]="isDeleting">
+      <button *ngIf="mode !== 'remove'" class='btn btn-light' (click)="onMessageRemoving()" [disabled]="isDeleting">
         <i class="fas fa-trash-alt fa-sm text-secondary"></i>
+      </button>
+      <button *ngIf="mode === 'remove'" class='btn btn-outline-secondary' (click)="mode = 'view'" [disabled]="isDeleting">
+        <i class="fas fa-times fa-lg"></i>
+      </button>
+      <button *ngIf="mode === 'remove'" class='btn btn-outline-danger' (click)="removeMessage()" [disabled]="isDeleting">
+        <i class="fas fa-trash-alt fa-lg me-2"></i>?
       </button>
     </ng-container>
   </div>

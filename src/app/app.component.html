@@ -1,27 +1,57 @@
-<div class='p-2'>
-  <div *ngIf="chatRoomIds.length === 0" class="alert alert-primary" role="alert">
-    Select a Project or Package to join the corresponding chatroom.
-  </div>
-  <div class="accordion">
-    <!-- <bdp-chatroom [roomId]="'abcd'" [roomType]="'project'" [roomMessages]="chatRooms.get(roomId)"></bdp-chatroom> -->
-    <ng-container *ngFor="let eachRoomId of chatRoomIds; trackBy: trackByRoomIds">
-      <ng-container *ngIf="chatRooms[eachRoomId]">
-        <bdp-chatroom 
-          [roomId]="eachRoomId"
-          [roomModel]="roomModelMap.get(eachRoomId)"
-          [chatroom]="chatRooms[eachRoomId]"
-          [currentUser]="currentUser"
-          [scrollToBottomFlag]="chatRooms[eachRoomId].triggerScrollToBottom"
-          [userModelMap]="userModelMap"
-          [panelState]="panelState"
-          (onSendMessage)="sendMessage($event)"
-          (onMessageUpdate)="editMessage($event)"
-          (onMessageRemove)="removeMessage($event)"
-          (onScrollToBottom)="setScrollAtBottom($event, eachRoomId)"
-          (onRequestMoreMessage)="loadMoreMessages($event)"
-          (click)="focusChatRoom(eachRoomId)"
-        ></bdp-chatroom>
-      </ng-container>
+<div class="d-flex flex-row" style='width: 100%;'>
+  <div *ngIf="panelState === 'full' && currentUser" class="list-group p-1" style='max-width: 250px; min-width: 150px;'>
+    <h3><i class='fas fa-user-friends'></i>    User list</h3>
+    <ng-container *ngFor="let eachUser of (userModelMap | keyvalue)">
+      <button *ngIf="eachUser.key !== currentUser.id" type="button" class="list-group-item list-group-item-action" aria-current="true"
+        [class.list-group-item-primary]="chatRooms[eachUser.key] ? true : false"
+        (click)="enterChatroom('user', eachUser.key)"
+      >
+        {{ eachUser.value.name }}
+        <span class="badge bg-secondary ms-2" *ngIf="chatRooms[eachUser.key] && chatRooms[eachUser.key].unread > 0">{{chatRooms[eachUser.key].unread}} </span>
+        <br>
+        <small class='text-muted'>{{ eachUser.value.id }}</small>
+      </button>
     </ng-container>
+  </div>
+  <div class='p-2 flex-grow-1' *ngIf="api">
+    <div class="accordion">
+      <!-- <bdp-chatroom [roomId]="'abcd'" [roomType]="'project'" [roomMessages]="chatRooms.get(roomId)"></bdp-chatroom> -->
+      <bdp-chatroom
+        *ngIf="chatRooms['global']"
+        roomId="global"
+        [chatroom]="chatRooms['global']"
+        [currentUser]="currentUser"
+        [scrollToBottomFlag]="chatRooms['global'].triggerScrollToBottom"
+        [userModelMap]="userModelMap"
+        [panelState]="panelState"
+        (onSendMessage)="sendMessage($event)"
+        (onMessageUpdate)="editMessage($event)"
+        (onMessageRemove)="removeMessage($event)"
+        (onScrollToBottom)="setScrollAtBottom($event, 'global')"
+        (onRequestMoreMessage)="loadMoreMessages($event)"
+        (onEnterChatroom)="onEnterChatroom($event)"
+        (click)="focusChatRoom('global')"
+      ></bdp-chatroom>
+      <ng-container *ngFor="let eachRoomId of chatRoomIds; trackBy: trackByRoomIds">
+        <ng-container *ngIf="chatRooms[eachRoomId] && eachRoomId !== 'global'">
+          <bdp-chatroom
+            [roomId]="eachRoomId"
+            [roomModel]="roomModelMap.get(eachRoomId)"
+            [chatroom]="chatRooms[eachRoomId]"
+            [currentUser]="currentUser"
+            [scrollToBottomFlag]="chatRooms[eachRoomId].triggerScrollToBottom"
+            [userModelMap]="userModelMap"
+            [panelState]="panelState"
+            (onSendMessage)="sendMessage($event)"
+            (onMessageUpdate)="editMessage($event)"
+            (onMessageRemove)="removeMessage($event)"
+            (onScrollToBottom)="setScrollAtBottom($event, eachRoomId)"
+            (onRequestMoreMessage)="loadMoreMessages($event)"
+            (onEnterChatroom)="onEnterChatroom($event)"
+            (click)="focusChatRoom(eachRoomId)"
+          ></bdp-chatroom>
+        </ng-container>
+      </ng-container>
+    </div>
   </div>
 </div>

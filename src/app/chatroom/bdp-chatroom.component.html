@@ -4,8 +4,16 @@
   <!-- Each group chatrooms -->
   <h2 class="accordion-header" [id]="chatroom.type + '-' + roomId + '-header'">
   <button class="accordion-button" type="button" data-bs-toggle="collapse" [attr.data-bs-target]="'#' + chatroom.type + '-' + roomId + '-body'" aria-expanded="true" [attr.aria-controls]="chatroom.type + '-' + roomId + '-body'">
-    <i class="fas fa-fw me-2" [class.fa-briefcase]="chatroom.type === 'project'" [class.fa-cube]="chatroom.type === 'package'"></i><span>{{ roomModel?.name }}
-      <span *ngIf="chatroom.unread > 0" class="badge bg-secondary">{{ chatroom.unread }}</span>
+    <i class="fas fa-fw me-2" 
+      [class.fa-briefcase]="chatroom.type === 'project'" [class.fa-cube]="chatroom.type === 'package'"
+      [class.fa-globe]="chatroom.type === 'user' && roomId === 'global'"
+      [class.fa-globe]="chatroom.type === 'user' && roomId === 'global'"
+      [class.fa-user]="chatroom.type === 'user' && roomId !== 'global'"
+    ></i>
+    <span>
+      <span *ngIf="roomModel">{{ roomModel?.name }}</span>
+      <span *ngIf="!roomModel && roomId === 'global'">The Global Channel</span>
+      <span *ngIf="chatroom.unread > 0" class="badge bg-secondary ms-2">{{ chatroom.unread }}</span>
     </span>
   </button>
   </h2>
@@ -28,7 +36,7 @@
               class='toast my-1 showing'
               style='min-width: 229px'
               [class.align-self-end]="message.owner?.id === currentUser?.id"
-              [style.width]="panelState === 'full' ? '80%' : (panelState === 'large' ? '90%' : '100%')"
+              [style.width]="panelState === 'full' ? '90%' : (panelState === 'large' ? '90%' : '100%')"
               [style.background-color]="message.owner?.id === currentUser?.id ? 'rgb(220, 240, 225)' : 'rgb(230, 230, 230)'"
               [style.opacity]="message.id && deletingMsgIds.has(message.id) ? '0.5' : '1'"
               [userModelMap]="userModelMap"
@@ -37,6 +45,7 @@
               [currentUser]="currentUser"
               (onUpdateMsg)="updateMessage($event)"
               (onRemoveMsg)="removeMessage($event)"
+              (onEnterChatroom)="enterChatroom($event)"
             ></bdp-chatbox>
           </ng-container>
         </div>

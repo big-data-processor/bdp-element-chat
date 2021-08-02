@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, OnInit, Input, Output, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import { Component, ElementRef, EventEmitter, OnInit, Input, Output, OnChanges, OnDestroy, SimpleChanges, ViewChild } from '@angular/core';
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { BdpElementMessage } from './model/element-message';
 import {ProjectModel, PackageModel, AccountModel} from './model/mongo.models';
@@ -18,12 +18,12 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
   api: any;
   chatRooms: {[key: string]: ChatRoom} = {};
   chatRoomIds: string[] = [];
-  roomModelMap = new Map<string, ProjectModel | PackageModel>();
+  roomModelMap = new Map<string, ProjectModel | PackageModel | AccountModel>();
   userModelMap = new Map<string, AccountModel>();
   currentUser: AccountModel | undefined;
   pageSize: number = 10;
   notifyMsg$ = new BehaviorSubject<string>('');
-  panelState: string = 'open';
+  panelState: string = 'menu';
   private sub = new Subscription();
   constructor(private el: ElementRef) {}
   ngOnInit() {
@@ -53,17 +53,19 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
     this.currentUser = await this.api.getCurrentUserInfo();
     const currentProject = await this.api.getCurrentProjectInfo();
     const currentPackage = await this.api.getCurrentPackageInfo();
-    if (!currentProject && !currentPackage) { return; }
     this.notifyMsg$.next(' ');
     setTimeout(() => {
       if (currentProject) {
         this.roomModelMap.set(currentProject.id, currentProject);
+        this.setRoomMembers(currentProject);
         this.enterChatroom('project', currentProject.id);
       }
       if (currentPackage) {
         this.roomModelMap.set(currentPackage.id, currentPackage);
+        this.setRoomMembers(currentPackage);
         this.enterChatroom('package', currentPackage.id);  
       }
+      this.enterChatroom('user', 'global');
     }, 10);
   }
 
@@ -84,12 +86,14 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
       case 'Project':
         if (changes.data && changes.data.id) {
           this.roomModelMap.set(changes.data.id, changes.data);
+          this.setRoomMembers(changes.data);
           this.enterChatroom('project', changes.data.id);
         }
         break;
       case 'Package':
         if (changes.data && changes.data.id) {
           this.roomModelMap.set(changes.data.id, changes.data);
+          this.setRoomMembers(changes.data);
           this.enterChatroom('package', changes.data.id);
         }
         break;
@@ -102,10 +106,20 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
   }
   async incomingMessageHandler(msgObj: {type: string, message: BdpElementMessage}) {
     const theMessage = msgObj.message;
-    const roomId = theMessage.project || theMessage.package;
-    if (!roomId || !this.chatRooms[roomId]) { return; }
+    let roomId = theMessage.project || theMessage.package || theMessage.user?.id || 'global';
+    if (roomId === this.currentUser?.id && theMessage.owner?.id) { roomId = theMessage.owner.id; }
     switch (msgObj.type) {
       case 'insert':
+        if (!this.chatRooms[roomId] && !theMessage.user?.id) {
+          return;
+        } else if (!this.chatRooms[roomId] && theMessage.owner) {
+          this.userModelMap.set(theMessage.owner.id, theMessage.owner);
+          this.enterChatroom('user', theMessage.owner.id);
+          return;
+        }
+        if (theMessage.owner && theMessage.owner.id) {
+          this.userModelMap.set(theMessage.owner?.id, theMessage.owner);
+        }
         this._appendChatMessage(roomId, {
           id: theMessage.id,
           content: theMessage.content.toString(),
@@ -116,9 +130,11 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
         setTimeout(() => this.notifyUnreadNumber());
         break;
       case 'remove':
+        if (!this.chatRooms[roomId]) { return; }
         this._removeChatMessage(roomId, theMessage.id);
         break;
       case 'update':
+        if (!this.chatRooms[roomId]) { return; }
         theMessage.createdAt = moment(new Date(theMessage.createdAt as unknown as string));
         theMessage.updatedAt = moment(new Date(theMessage.updatedAt as unknown as string));
         this._updateChatMessage(roomId, theMessage);
@@ -146,43 +162,24 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
       project: roomType === 'project' ? roomId : undefined,
       package: roomType === 'package' ? roomId : undefined
     };
-    this.chatRooms[roomId] = {type: roomType, isLoading: true, messages: [], pageIndex: 0, totalPage: 0, totalCount: 0, triggerScrollToBottom: false, isAtBottom: false, unread: 0};
-    this.chatRoomIds.unshift(roomId);
-    
-    this.api.listElementMessages(this.elementId, correspondingIds, this.pageSize, -1, 'created-asc').then((lists: {
-      records: BdpElementMessage[],
-      totalPage: number,
-      pageIndex: number,
-      totalCount: number,
-      pageSize:number
-    }) => {
-      lists.records.forEach((elemMessage: BdpElementMessage) => {
-        if (typeof elemMessage.owner === 'string') {
-          const ownerId = elemMessage.owner;
-          elemMessage.owner = {id: ownerId, name: `(unknown user id: ${ownerId}`, auths: {}};
-        } else if (!elemMessage.owner) {
-          elemMessage.owner = {id: 'undefined', name: `(unknown user)`, auths: {}};
+    if (roomType === 'project' || roomType === 'package') {
+      this.getInitialMessages(roomId, roomType, 'list', correspondingIds);
+    } else if (roomType === 'user' && roomId === 'global') {
+      this.getInitialMessages(roomId, roomType, 'query', {project: {$exists: false}, package: {$exists: false}, user: {$exists: false}});
+    } else if (roomType === 'user') {
+      if (!this.currentUser || !this.currentUser.id) { return; }
+      if (this.userModelMap.has(roomId)) {
+        const theUserModel = this.userModelMap.get(roomId);
+        if (theUserModel) {
+          this.roomModelMap.set(roomId, theUserModel);
+          this.getInitialMessages(roomId, roomType, 'query',
+            {project: {$exists: false}, package: {$exists: false}, $or: [{user: roomId, owner: this.currentUser.id}, {user: this.currentUser.id, owner: roomId}]});
         }
-      })
-      this.chatRooms[roomId] = {
-        type: roomType,
-        isLoading: false,
-        triggerScrollToBottom: true,
-        isAtBottom: true,
-        messages: lists.records.map(msg => ({id: msg.id, content: msg.content.toString(), owner: msg.owner as AccountModel | undefined, createdAt: moment(new Date(msg.createdAt as unknown as string)), updatedAt: moment(new Date(msg.updatedAt as unknown as string))})),
-        pageIndex: lists.pageIndex,
-        totalPage: lists.totalPage,
-        totalCount: lists.totalCount,
-        unread: 0,
-      };
-      this.notifyMsg$.next('');
-      setTimeout(() => {
-        this.chatRooms[roomId].triggerScrollToBottom = false;
-        if (this.chatRooms[roomId].pageIndex > 0 && this.chatRooms[roomId].messages.length < 5) {
-          this.loadMoreMessages({roomId: roomId});
-        }
-      }, 100);
-    });
+      }
+    }
+  }
+  onEnterChatroom(ev: {roomId: string, roomType: string}) {
+    this.enterChatroom(ev.roomType as 'project' | 'package' | 'user', ev.roomId);
   }
   _appendChatMessage(roomId: string, message: Partial<BdpElementMessage>) {
     if (!this.chatRooms[roomId]) { return; }
@@ -221,11 +218,18 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
     if (!this.chatRooms[roomId]) { return; }
     if (content === '') { return; }
     const roomType = this.chatRooms[roomId].type;
-    const correspondingIds = {
-      project: roomType === 'project' ? roomId : undefined,
-      package: roomType === 'package' ? roomId : undefined
-    };
-    this.api.createElementMessage(this.elementId, content, correspondingIds, [roomType]).catch(console.log);
+    if (roomType === 'project' || roomType === 'package') {
+      const correspondingIds = {
+        project: roomType === 'project' ? roomId : undefined,
+        package: roomType === 'package' ? roomId : undefined
+      };
+      this.api.createElementMessage(this.elementId, content, correspondingIds, [roomType]).catch(console.log);
+    } else if (roomType === 'user' && roomId === 'global') {
+      this.api.createElementMessage(this.elementId, content, {}, ['user']).catch(console.log);
+    } else if (roomType === 'user') {
+      this.api.createElementMessage(this.elementId, content, {user: roomId}, ['user']).catch(console.log);
+    }
+    
   }
   editMessage(ev: {roomId: string, msgId: string, content: string}) {
     if (!this.api || !this.api.updateElementMessage) { return; }
@@ -259,21 +263,12 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
   trackByRoomIds(index: number, item: string) {
     return item;
   }
-  loadMoreMessages(ev: {roomId: string}) {
-    const roomId = ev.roomId;
-    console.log(`loadMoreMessages`);
-    console.log(this.chatRooms[roomId]);
-    if (!this.api || !this.api.listElementMessages) { return; }
-    if (!this.chatRooms[roomId]) { return; }
-    if (this.chatRooms[roomId].pageIndex <= 0) { return; }
-    const roomType = this.chatRooms[roomId].type;
-    const correspondingIds = {
-      project: roomType === 'project' ? roomId : undefined,
-      package: roomType === 'package' ? roomId : undefined
-    };
-    this.chatRooms[roomId].isLoading = true;
-    const nextIndex = this.chatRooms[roomId].pageIndex - 1;
-    this.api.listElementMessages(this.elementId, correspondingIds, this.pageSize, nextIndex, 'created-asc').then((lists: {
+  getInitialMessages(roomId: string, roomType: 'project' | 'package' | 'user', listOrQuery: 'list' | 'query', queryObject: any) {
+    this.chatRooms[roomId] = {type: roomType, isLoading: true, messages: [], pageIndex: 0, totalPage: 0, totalCount: 0, triggerScrollToBottom: false, isAtBottom: false, unread: 0};
+    if (roomId !== 'global') { this.chatRoomIds.unshift(roomId); }
+    const theApiName = listOrQuery === 'list' ? 'listElementMessages' : 'queryElementMessages';
+    if (typeof this.api[theApiName] !== 'function') { return; }
+    this.api[theApiName](this.elementId, queryObject, this.pageSize, -1, 'created-asc').then((lists: {
       records: BdpElementMessage[],
       totalPage: number,
       pageIndex: number,
@@ -284,9 +279,72 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
         if (typeof elemMessage.owner === 'string') {
           const ownerId = elemMessage.owner;
           elemMessage.owner = {id: ownerId, name: `(unknown user id: ${ownerId}`, auths: {}};
+          this.userModelMap.set(ownerId, elemMessage.owner);
         } else if (!elemMessage.owner) {
           elemMessage.owner = {id: 'undefined', name: `(unknown user)`, auths: {}};
         }
+        this.userModelMap.set(elemMessage.owner.id, elemMessage.owner);
+      });
+      this.chatRooms[roomId] = {
+        type: roomType,
+        isLoading: false,
+        triggerScrollToBottom: true,
+        isAtBottom: true,
+        messages: lists.records.map(msg => ({id: msg.id, content: msg.content.toString(), owner: msg.owner as AccountModel | undefined, createdAt: moment(new Date(msg.createdAt as unknown as string)), updatedAt: moment(new Date(msg.updatedAt as unknown as string))})),
+        pageIndex: lists.pageIndex,
+        totalPage: lists.totalPage,
+        totalCount: lists.totalCount,
+        unread: 0,
+      };
+      this.notifyMsg$.next('');
+      setTimeout(() => {
+        this.chatRooms[roomId].triggerScrollToBottom = false;
+        if (this.chatRooms[roomId].pageIndex > 0 && this.chatRooms[roomId].messages.length < 5) {
+          this.loadMoreMessages({roomId: roomId});
+        }
+      }, 100);
+    });
+  }
+
+  loadMoreMessages(ev: {roomId: string}) {
+    const roomId = ev.roomId;
+    if (!this.api || !this.api.listElementMessages) { return; }
+    if (!this.chatRooms[roomId]) { return; }
+    if (this.chatRooms[roomId].pageIndex <= 0) { return; }
+    const roomType = this.chatRooms[roomId].type;
+    //  TODO: START HERE!!!
+    this.chatRooms[roomId].isLoading = true;
+    const nextIndex = this.chatRooms[roomId].pageIndex - 1;
+    let queryObject, apiFunction;
+    if (roomType === 'package' || roomType === 'project') {
+      queryObject = {project: roomType === 'project' ? roomId : undefined, package: roomType === 'package' ? roomId : undefined};
+      apiFunction = 'listElementMessages';
+    } else if (roomType === 'user' && roomId === 'global') {
+      queryObject = {project: {$exists: false}, package: {$exists: false}, user: {$exists: false}};
+      apiFunction = 'queryElementMessages';
+    } else if (roomType === 'user') {
+      if (!this.currentUser || !this.currentUser.id) { return; }
+      queryObject = {project: {$exists: false}, package: {$exists: false}, $or: [{user: roomId, owner: this.currentUser.id}, {user: this.currentUser.id, owner: roomId}]};
+      apiFunction = 'queryElementMessages';
+    } else {
+      return;
+    }
+    this.api[apiFunction](this.elementId, queryObject, this.pageSize, nextIndex, 'created-asc').then((lists: {
+      records: BdpElementMessage[],
+      totalPage: number,
+      pageIndex: number,
+      totalCount: number,
+      pageSize:number
+    }) => {
+      lists.records.forEach((elemMessage: BdpElementMessage) => {
+        if (typeof elemMessage.owner === 'string') {
+          const ownerId = elemMessage.owner;
+          elemMessage.owner = {id: ownerId, name: `(unknown user id: ${ownerId}`, auths: {}};
+          this.userModelMap.set(ownerId, elemMessage.owner);
+        } else if (!elemMessage.owner) {
+          elemMessage.owner = {id: 'undefined', name: `(unknown user)`, auths: {}};
+        }
+        this.userModelMap.set(elemMessage.owner.id, elemMessage.owner);
       });
       const prependingMessages = lists.records.map(msg => ({
         id: msg.id,

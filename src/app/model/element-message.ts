@@ -11,7 +11,7 @@ export interface BdpElementMessage {
   dataFile: string | null;
   package: string | null;
   task: string | null;
-  user: string | null;
+  user: AccountModel | null;
   createdAt: Moment;
   updatedAt: Moment;
 }

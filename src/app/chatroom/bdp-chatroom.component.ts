@@ -37,6 +37,7 @@ export class BdpChatroomComponent implements OnChanges {
   @Output() onMessageRemove = new EventEmitter<{roomId: string, msgId: string}>();
   @Output() onRequestMoreMessage = new EventEmitter<{roomId: string}>();
   @Output() onScrollToBottom = new EventEmitter<boolean>();
+  @Output() onEnterChatroom = new EventEmitter<{roomId: string, roomType: string}>();
   @ViewChild('messageBoxes') messageBoxContainer: ElementRef | undefined;
   Editor = BdpEditor;
   editorConfig: any = {toolbar: ['heading', '|', 'bold', 'code', 'codeBlock']};
@@ -102,5 +103,8 @@ export class BdpChatroomComponent implements OnChanges {
     if (this.chatroom.pageIndex > 0) {
       this.onRequestMoreMessage.emit({roomId: this.roomId});
     }
+  }
+  enterChatroom(ev: {roomId: string, roomType: string}) {
+    this.onEnterChatroom.emit(ev);
   }
 }
