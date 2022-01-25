@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, OnInit, Input, Output, OnChanges, OnDestroy, SimpleChanges, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, OnInit, Input, Output, OnChanges, OnDestroy, SimpleChanges, ChangeDetectorRef } from '@angular/core';
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { BdpElementMessage } from './model/element-message';
 import {ProjectModel, PackageModel, AccountModel} from './model/mongo.models';
@@ -25,7 +25,7 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
   notifyMsg$ = new BehaviorSubject<string>('');
   panelState: string = 'menu';
   private sub = new Subscription();
-  constructor(private el: ElementRef) {}
+  constructor(private el: ElementRef, private changeDetectorRef: ChangeDetectorRef) {}
   ngOnInit() {
     this.el.nativeElement.bdpInitialize = (inputApi: any) => this.initialize(inputApi).catch(console.log);
     this.el.nativeElement.bdpNotifyChanges = (changes: {type: string, target: string, data: any}) => this.handleChanges(changes).catch(console.log);
@@ -66,6 +66,7 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
         this.enterChatroom('package', currentPackage.id);  
       }
       this.enterChatroom('user', 'global');
+      this.changeDetectorRef.markForCheck();
     }, 10);
   }
 

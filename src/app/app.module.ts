@@ -8,16 +8,15 @@ import { BdpChatboxComponent } from './chatroom/bdp-chatbox.component';
 import { CKEditorModule } from '@ckeditor/ckeditor5-angular';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 @NgModule({
-  declarations: [AppComponent, BdpChatroomComponent, BdpChatboxComponent],
-  imports: [
-    BrowserModule,
-    BrowserAnimationsModule,
-    FormsModule,
-    CKEditorModule
-  ],
-  entryComponents: [AppComponent],
-  // bootstrap: [AppComponent],
-  providers: []
+    declarations: [AppComponent, BdpChatroomComponent, BdpChatboxComponent],
+    imports: [
+        BrowserModule,
+        BrowserAnimationsModule,
+        FormsModule,
+        CKEditorModule
+    ],
+    // bootstrap: [AppComponent],
+    providers: []
 })
 export class AppModule {
   constructor(private injector : Injector){}
