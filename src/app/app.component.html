@@ -1,8 +1,12 @@
+<div style="width: 100%; height: 40px;" class="d-flex justify-content-between">
+  <b>BDP Chatroom</b>
+  <button class="btn btn-light" (click)="toggleStatus()"><i class="bi bi-aspect-ratio"></i></button>
+</div>
 <div class="d-flex flex-row" style='width: 100%;'>
   <div *ngIf="panelState === 'full' && currentUser" class="list-group p-1" style='max-width: 250px; min-width: 150px;'>
-    <h3><i class='fas fa-user-friends'></i>    User list</h3>
+    <b><i class='fas fa-user-friends'></i>    User list</b>
     <ng-container *ngFor="let eachUser of (userModelMap | keyvalue)">
-      <button *ngIf="eachUser.key !== currentUser.id" type="button" class="list-group-item list-group-item-action" aria-current="true"
+      <button *ngIf="eachUser.key !== currentUser.id && eachUser.value?.id !== 'undefined'" type="button" class="list-group-item list-group-item-action" aria-current="true"
         [class.list-group-item-primary]="chatRooms[eachUser.key] ? true : false"
         (click)="enterChatroom('user', eachUser.key)"
       >

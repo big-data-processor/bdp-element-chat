@@ -33,7 +33,7 @@
           <ng-container *ngFor="let message of chatroom.messages; trackBy: trackByMsgIds">
             <bdp-chatbox 
               [@chatBox]="'show'"
-              class='toast my-1 showing'
+              class='toast my-1 show'
               style='min-width: 229px'
               [class.align-self-end]="message.owner?.id === currentUser?.id"
               [style.width]="panelState === 'full' ? '90%' : (panelState === 'large' ? '90%' : '100%')"

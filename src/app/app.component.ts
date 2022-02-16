@@ -1,5 +1,5 @@
 import { Component, ElementRef, EventEmitter, OnInit, Input, Output, OnChanges, OnDestroy, SimpleChanges, ChangeDetectorRef } from '@angular/core';
-import { BehaviorSubject, Subscription } from 'rxjs';
+import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { BdpElementMessage } from './model/element-message';
 import {ProjectModel, PackageModel, AccountModel} from './model/mongo.models';
 import * as moment from 'moment';
@@ -24,13 +24,13 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
   pageSize: number = 10;
   notifyMsg$ = new BehaviorSubject<string>('');
   panelState: string = 'menu';
-  private sub = new Subscription();
+  ngUnsubscribe = new Subject();
   constructor(private el: ElementRef, private changeDetectorRef: ChangeDetectorRef) {}
   ngOnInit() {
     this.el.nativeElement.bdpInitialize = (inputApi: any) => this.initialize(inputApi).catch(console.log);
     this.el.nativeElement.bdpNotifyChanges = (changes: {type: string, target: string, data: any}) => this.handleChanges(changes).catch(console.log);
     this.el.nativeElement.bdpIncomingMessage = (msgObj: {type: string, message: BdpElementMessage}) => this.incomingMessageHandler(msgObj).catch(console.log);
-    this.sub.add(this.notifyMsg$.subscribe((str: string) => this.notify.emit(str)));
+    this.notifyMsg$.pipe(takeUntil(this.ngUnsubscribe)).subscribe((str: string) => this.notify.emit(str));
     // making a global 
     // this.chatRooms['test-id'] = {type: 'project', isLoading: true, messages: [{
     //   id: 'msg-id-1', content: 'XDXD', owner: {name: 'A user', id: 'user-id-1', auths: {bdp: 9}}, createdAt: moment(new Date()), updatedAt: moment(new Date())
@@ -48,6 +48,7 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
   }
   async initialize(inputApi: any) {
     this.api = inputApi;
+    console.log('bdp element initialized');
     if (!this.api) { return console.log('failed to get api functions'); }
     this.panelState = this.api.getRightSideBarStatus();
     this.currentUser = await this.api.getCurrentUserInfo();
@@ -66,7 +67,6 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
         this.enterChatroom('package', currentPackage.id);  
       }
       this.enterChatroom('user', 'global');
-      this.changeDetectorRef.markForCheck();
     }, 10);
   }
 
@@ -297,6 +297,7 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
         totalCount: lists.totalCount,
         unread: 0,
       };
+      this.changeDetectorRef.markForCheck();
       this.notifyMsg$.next('');
       setTimeout(() => {
         this.chatRooms[roomId].triggerScrollToBottom = false;
@@ -361,7 +362,11 @@ export class AppComponent implements OnInit, OnChanges, OnDestroy {
       setTimeout(() => this.chatRooms[roomId].isLoading = false, 500);
     });
   }
+  toggleStatus() {
+    this.api?.toggleRightSideBarStatus();
+  }
   ngOnDestroy() {
-    this.sub.unsubscribe();
+    this.ngUnsubscribe.next(undefined);
+    this.ngUnsubscribe.complete();
   }
 }
